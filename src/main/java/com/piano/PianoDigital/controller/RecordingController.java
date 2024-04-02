@@ -23,6 +23,22 @@ public class RecordingController {
     @Autowired
     private IRecordingService recordingService;
 
+
+    @PostMapping("/startRecording")
+    public ResponseEntity<String> startRecording() {
+        try {
+            recordingService.startRecording();
+            return ResponseEntity.ok("Recording started successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/stopRecording")
+    public void stopRecording() throws Exception {
+        recordingService.stopRecording();
+    }
+
     @PostMapping("/upload")
     public ResponseEntity<Recording> saveRecording(@RequestParam("file") MultipartFile file,
                                                    @RequestParam("title") String title,
@@ -36,15 +52,17 @@ public class RecordingController {
         recording = recordingService.saveRecording(file,title,description,recordedById,assignedById, original_recording_id);
 
         downloadMidiURL = ServletUriComponentsBuilder.fromCurrentContextPath()
-                        .path("/download/")
-                                .path(String.valueOf((Long)recording.getId()))
-                                        .toUriString();
+                .path("/download/")
+                .path(String.valueOf((Long)recording.getId()))
+                .toUriString();
 
 
         System.out.println(recording);
         return ResponseEntity.status(HttpStatus.CREATED).body(recording);
 
     }
+
+
 
     @GetMapping("/download/{recordingId}")
     public ResponseEntity<Resource> downloadMidiFileByRecordingId(@PathVariable Long recordingId) throws Exception {
