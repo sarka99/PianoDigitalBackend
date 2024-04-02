@@ -40,7 +40,8 @@ public class RecordingController {
                                         .toUriString();
 
 
-        System.out.println(recording.toString());
+        System.out.println(recording);
+
 
 
 
