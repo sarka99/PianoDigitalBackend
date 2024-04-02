@@ -28,11 +28,12 @@ public class RecordingController {
                                                    @RequestParam("title") String title,
                                                    @RequestParam("description") String description,
                                                    @RequestParam("recordedBy") Long recordedById,
-                                                   @RequestParam("assignedBy") Long assignedById) throws Exception {
+                                                   @RequestParam("assignedBy") Long assignedById,
+                                                   @RequestParam("originalRecordingId") Long original_recording_id) throws Exception {
 
         Recording recording = null;
         String downloadMidiURL = "";
-        recording = recordingService.saveRecording(file,title,description,recordedById,assignedById);
+        recording = recordingService.saveRecording(file,title,description,recordedById,assignedById, original_recording_id);
 
         downloadMidiURL = ServletUriComponentsBuilder.fromCurrentContextPath()
                         .path("/download/")
@@ -41,10 +42,6 @@ public class RecordingController {
 
 
         System.out.println(recording);
-
-
-
-
         return ResponseEntity.status(HttpStatus.CREATED).body(recording);
 
     }

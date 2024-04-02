@@ -1,17 +1,22 @@
 package com.piano.PianoDigital.db.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
 
 @Entity
 @Table(name = "recordings")
+@Setter
+@Getter
 public class Recording {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
 
     @Column(nullable = false)
     private String title;
@@ -37,6 +42,8 @@ public class Recording {
     private String fileName;
     private String fileType;
 
+    @Column(name = "original_recording_id")
+    private Long originalRecordingId;
     public Recording() {
     }
 
@@ -61,41 +68,7 @@ public class Recording {
         this.fileType = fileType;
     }
 
-    public String getFileName() {
-        return fileName;
-    }
 
-    public String getFileType() {
-        return fileType;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public User getRecordedBy() {
-        return recordedBy;
-    }
-
-    public User getAssignedBy() {
-        return assignedBy;
-    }
-
-    public LocalDateTime getUploadDate() {
-        return uploadDate;
-    }
-
-    public byte[] getMidiFileData() {
-        return midiFileData;
-    }
 
     @Override
     public String toString() {

@@ -7,7 +7,9 @@ import java.util.List;
 
 public interface IRecordingService {
 
-    Recording saveRecording(MultipartFile file, String title, String description, Long recordedById, Long assignedById) throws Exception;
+
+    Recording saveRecording(MultipartFile file, String title, String description, Long recordedById, Long assignedById,
+                            Long original_track_id) throws Exception;
 
     List<Recording> getRecordingsByUserId(Long userId);
 

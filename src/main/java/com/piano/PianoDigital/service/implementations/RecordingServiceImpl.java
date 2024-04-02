@@ -21,8 +21,12 @@ public class RecordingServiceImpl implements IRecordingService {
     private RecordingRepository recordingRepository;
     @Autowired
     private UserRepository userRepository;
+
+
+
     @Override
-    public Recording saveRecording(MultipartFile file, String title, String description, Long recordedById, Long assignedById) throws Exception {
+    public Recording saveRecording(MultipartFile file, String title, String description, Long recordedById, Long assignedById,
+                                   Long original_track_id) throws Exception {
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
         try{
             if (fileName.contains("..")){
@@ -39,6 +43,7 @@ public class RecordingServiceImpl implements IRecordingService {
                     file.getBytes(),
                     fileName,
                     file.getContentType());
+            recording.setOriginalRecordingId(original_track_id);
             return recordingRepository.save(recording);
 
 
