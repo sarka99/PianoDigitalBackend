@@ -1,6 +1,7 @@
 package com.piano.PianoDigital.service.implementations;
 
 import com.piano.PianoDigital.Utils.MidiDeviceSelector;
+import com.piano.PianoDigital.Utils.MidiNoteConverter;
 import com.piano.PianoDigital.db.entity.Recording;
 import com.piano.PianoDigital.db.entity.User;
 import com.piano.PianoDigital.db.repository.RecordingRepository;
@@ -156,14 +157,14 @@ public class RecordingServiceImpl implements IRecordingService {
 
             //Do feedback, get the saved studentsRecording --> compare to the original
             //FindRecordingByRecordedBYID now we have the students track, from it extract the original track and then compare them.
-            recordingRepository.save(studentsRecording);
+           // recordingRepository.save(studentsRecording);
             Long originalRecordingId = studentsRecording.getOriginalRecordingId();
             Recording originalRecording = recordingRepository.findRecordingById(originalRecordingId);
             System.out.println("The students recording to be compared:" + studentsRecording);
             System.out.println("The original recording to be compared:" + originalRecording);
             compareTracksNotes(studentsRecording,originalRecording);
 
-            return studentsRecording;
+            return null;
 
 
 
@@ -179,12 +180,13 @@ public class RecordingServiceImpl implements IRecordingService {
         // Extract notes from both sequences
         List<Integer> studentNotes = extractNotes(studentSequence);
         List<Integer> originalNotes = extractNotes(originalSequence);
-        List<Integer> wrongNotes = new ArrayList<>();
+        List<String> wrongNotes = new ArrayList<>();
 
         // Compare notes
         int correctNotes = 0;
         int missedNotes = 0;
         int extraNotes = 0;
+        int correctNotesPercentage = 0;
 
         for (Integer note : studentNotes) {
             if (originalNotes.contains(note)) {
@@ -193,14 +195,17 @@ public class RecordingServiceImpl implements IRecordingService {
                 extraNotes++;
             }
         }
+        correctNotesPercentage = (int) ((double) correctNotes / originalNotes.size() * 100);
         wrongNotes = identifyWrongNotes(studentNotes,originalNotes);
         missedNotes = originalNotes.size() - correctNotes;
+
 
         // Print comparison results
         System.out.println("Correct Notes: " + correctNotes);
         System.out.println("Missed Notes: " + missedNotes);
         System.out.println("Extra Notes: " + extraNotes);
         System.out.println("Wrong notes: " + wrongNotes);
+        System.out.println("Note Accuracy: " + correctNotesPercentage+"%");
     }
     private List<Integer> extractNotes(Sequence sequence) {
         List<Integer> notes = new ArrayList<>();
@@ -220,11 +225,11 @@ public class RecordingServiceImpl implements IRecordingService {
 
         return notes;
     }
-    private List<Integer> identifyWrongNotes(List<Integer> studentNotes, List<Integer> originalNotes){
-        List<Integer> wrongNotes = new ArrayList<>();
+    private List<String> identifyWrongNotes(List<Integer> studentNotes, List<Integer> originalNotes){
+        List<String> wrongNotes = new ArrayList<>();
         for (int i = 0; i < studentNotes.size(); i++) {
             if (!studentNotes.get(i).equals(originalNotes.get(i))) {
-                wrongNotes.add(studentNotes.get(i)); // Add wrong note to the list
+                wrongNotes.add(MidiNoteConverter.convertToNoteName(studentNotes.get(i))); // Add wrong note to the list
 
             }
         }
