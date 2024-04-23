@@ -12,9 +12,11 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import javax.sound.midi.*;
 
@@ -103,8 +105,8 @@ public class RecordingServiceImpl implements IRecordingService {
     }
 
     @Override
-    public Recording saveRecording(MultipartFile file, String title, String description, Long recordedById, Long assignedById,
-                                   Long original_track_id) throws Exception {
+    public Recording saveTeacherRecording(MultipartFile file, String title, String description, Long recordedById, Long assignedById,
+                                          Long original_track_id) throws Exception {
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
         try{
             if (fileName.contains("..")){
@@ -129,6 +131,93 @@ public class RecordingServiceImpl implements IRecordingService {
             throw new Exception("Could not save file:" + fileName);
         }
 
+    }
+
+    @Override
+    public Recording saveStudentRecording(MultipartFile file, String title, String description, Long recordedById, Long assignedById, Long original_track_id) throws Exception {
+        String fileName = StringUtils.cleanPath(file.getOriginalFilename());
+        try{
+            if (fileName.contains("..")){
+                throw new Exception("Filename contains invalid path sequence");
+            }
+            // Fetch recordedBy and assignedBy users from repository
+            User recordedBy = userRepository.findById(recordedById).orElseThrow(() -> new IllegalArgumentException("Recorded by user not found"));
+            User assignedBy = userRepository.findById(assignedById).orElseThrow(() -> new IllegalArgumentException("Assigned by user not found"));
+            Recording studentsRecording = new Recording(title,
+                    description,
+                    recordedBy,
+                    assignedBy,
+                    LocalDateTime.now(),
+                    file.getBytes(),
+                    fileName,
+                    file.getContentType());
+            studentsRecording.setOriginalRecordingId(original_track_id);
+            //Save the recording to db as a recording row
+            //for testing, comment away the save recording
+        //    recordingRepository.save(studentsRecording);
+
+            //Do feedback, get the saved studentsRecording --> compare to the original
+            //FindRecordingByRecordedBYID now we have the students track, from it extract the original track and then compare them.
+            Long originalRecordingId = studentsRecording.getOriginalRecordingId();
+            Recording originalRecording = recordingRepository.findRecordingById(originalRecordingId);
+            System.out.println("The students recording to be compared:" + studentsRecording);
+            System.out.println("The original recording to be compared:" + originalRecording);
+            compareTracksNotes(studentsRecording,originalRecording);
+
+            return null;
+
+
+
+        }catch (Exception e){
+            throw new Exception("Could not save file:" + fileName);
+        }
+    }
+    private void compareTracksNotes(Recording studentRecording,Recording originalRecording) throws InvalidMidiDataException, IOException {
+        // Get the MIDI sequences from student and original recordings
+        Sequence studentSequence = MidiSystem.getSequence(new ByteArrayInputStream(studentRecording.getMidiFileData()));
+        Sequence originalSequence = MidiSystem.getSequence(new ByteArrayInputStream(originalRecording.getMidiFileData()));
+
+        // Extract notes from both sequences
+        List<Integer> studentNotes = extractNotes(studentSequence);
+        List<Integer> originalNotes = extractNotes(originalSequence);
+
+        // Compare notes
+        int correctNotes = 0;
+        int missedNotes = 0;
+        int extraNotes = 0;
+
+        for (Integer note : studentNotes) {
+            if (originalNotes.contains(note)) {
+                correctNotes++;
+            } else {
+                extraNotes++;
+            }
+        }
+
+        missedNotes = originalNotes.size() - correctNotes;
+
+        // Print comparison results
+        System.out.println("Correct Notes: " + correctNotes);
+        System.out.println("Missed Notes: " + missedNotes);
+        System.out.println("Extra Notes: " + extraNotes);
+    }
+    private List<Integer> extractNotes(Sequence sequence) {
+        List<Integer> notes = new ArrayList<>();
+
+        for (Track track : sequence.getTracks()) {
+            for (int i = 0; i < track.size(); i++) {
+                MidiEvent event = track.get(i);
+                MidiMessage message = event.getMessage();
+                if (message instanceof ShortMessage) {
+                    ShortMessage sm = (ShortMessage) message;
+                    if (sm.getCommand() == ShortMessage.NOTE_ON) {
+                        notes.add(sm.getData1()); // Adding the note value
+                    }
+                }
+            }
+        }
+
+        return notes;
     }
 
 

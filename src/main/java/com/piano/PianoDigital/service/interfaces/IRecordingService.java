@@ -10,7 +10,9 @@ public interface IRecordingService {
 
     void stopRecording() throws Exception;
     void startRecording() throws Exception;
-    Recording saveRecording(MultipartFile file, String title, String description, Long recordedById, Long assignedById,
+    Recording saveTeacherRecording(MultipartFile file, String title, String description, Long recordedById, Long assignedById,
+                                   Long original_track_id) throws Exception;
+    Recording saveStudentRecording(MultipartFile file, String title, String description, Long recordedById, Long assignedById,
                             Long original_track_id) throws Exception;
 
 
@@ -19,4 +21,5 @@ public interface IRecordingService {
     Recording getRecordingById(Long recordingId) throws Exception;
 
     String getRecordingDownloadURL(Long recordingId) throws Exception;
+
 }

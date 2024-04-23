@@ -33,14 +33,32 @@ public class RecordingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording: " + e.getMessage());
         }
     }
-
     @PostMapping("/stopRecording")
     public void stopRecording() throws Exception {
         recordingService.stopRecording();
     }
+    @PostMapping("/uploadTeachersRecording")
+    public ResponseEntity<Recording> saveTeacherRecording(@RequestParam("file") MultipartFile file,
+                                                          @RequestParam("title") String title,
+                                                          @RequestParam("description") String description,
+                                                          @RequestParam("recordedBy") Long recordedById,
+                                                          @RequestParam("assignedBy") Long assignedById,
+                                                          @RequestParam("originalRecordingId") Long original_recording_id) throws Exception {
 
-    @PostMapping("/upload")
-    public ResponseEntity<Recording> saveRecording(@RequestParam("file") MultipartFile file,
+        Recording recording = null;
+        String downloadMidiURL = "";
+        recording = recordingService.saveTeacherRecording(file,title,description,recordedById,assignedById, original_recording_id);
+
+        downloadMidiURL = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/download/")
+                .path(String.valueOf((Long)recording.getId()))
+                .toUriString();
+        System.out.println(recording);
+        return ResponseEntity.status(HttpStatus.CREATED).body(recording);
+
+    }
+    @PostMapping("/uploadStudentsRecording")
+    public ResponseEntity<Recording> saveStudentRecording(@RequestParam("file") MultipartFile file,
                                                    @RequestParam("title") String title,
                                                    @RequestParam("description") String description,
                                                    @RequestParam("recordedBy") Long recordedById,
@@ -49,31 +67,22 @@ public class RecordingController {
 
         Recording recording = null;
         String downloadMidiURL = "";
-        recording = recordingService.saveRecording(file,title,description,recordedById,assignedById, original_recording_id);
+        recording = recordingService.saveStudentRecording(file,title,description,recordedById,assignedById, original_recording_id);
 
         downloadMidiURL = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/download/")
                 .path(String.valueOf((Long)recording.getId()))
                 .toUriString();
-
-
         System.out.println(recording);
         return ResponseEntity.status(HttpStatus.CREATED).body(recording);
 
     }
-
-
-
     @GetMapping("/download/{recordingId}")
     public ResponseEntity<Resource> downloadMidiFileByRecordingId(@PathVariable Long recordingId) throws Exception {
         //Once the api endpoint is called from the frontend, the midi file will be downloaded
         Recording recording = null;
         recording = recordingService.getRecordingById(recordingId);
-
         System.out.println("Downloading midi file by recording id:" + recording);
-
-
-
         return ResponseEntity.ok()
                 .contentType(MediaType.valueOf("audio/midi")) // Set content type for MIDI file
                 .header(HttpHeaders.CONTENT_DISPOSITION,
@@ -81,9 +90,6 @@ public class RecordingController {
                 .body(new ByteArrayResource(recording.getMidiFileData()));
 
     }
-
-
-
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Recording>> getRecordingsByUserId(@PathVariable("userId") Long userId) {
         List<Recording> recordings = recordingService.getRecordingsByUserId(userId);
@@ -93,7 +99,4 @@ public class RecordingController {
             return ResponseEntity.ok(recordings);
         }
     }
-
-
-
 }

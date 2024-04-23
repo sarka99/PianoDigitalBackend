@@ -69,7 +69,6 @@ public class Recording {
     }
 
 
-
     @Override
     public String toString() {
         return "Recording{" +
@@ -82,6 +81,7 @@ public class Recording {
                 ", midiFileData=" + Arrays.toString(midiFileData) +
                 ", fileName='" + fileName + '\'' +
                 ", fileType='" + fileType + '\'' +
+                ", originalRecordingId=" + originalRecordingId +
                 '}';
     }
 }

@@ -10,5 +10,6 @@ import java.util.List;
 public interface RecordingRepository  extends JpaRepository<Recording, Long> {
     // query to find a track based on who recorded it (their id)
     List<Recording> findByRecordedById(Long userId);
+    Recording findRecordingById(Long recordingID);
 
 }
