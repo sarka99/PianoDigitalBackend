@@ -153,18 +153,17 @@ public class RecordingServiceImpl implements IRecordingService {
                     file.getContentType());
             studentsRecording.setOriginalRecordingId(original_track_id);
             //Save the recording to db as a recording row
-            //for testing, comment away the save recording
-        //    recordingRepository.save(studentsRecording);
 
             //Do feedback, get the saved studentsRecording --> compare to the original
             //FindRecordingByRecordedBYID now we have the students track, from it extract the original track and then compare them.
+            recordingRepository.save(studentsRecording);
             Long originalRecordingId = studentsRecording.getOriginalRecordingId();
             Recording originalRecording = recordingRepository.findRecordingById(originalRecordingId);
             System.out.println("The students recording to be compared:" + studentsRecording);
             System.out.println("The original recording to be compared:" + originalRecording);
             compareTracksNotes(studentsRecording,originalRecording);
 
-            return null;
+            return studentsRecording;
 
 
 
@@ -180,6 +179,7 @@ public class RecordingServiceImpl implements IRecordingService {
         // Extract notes from both sequences
         List<Integer> studentNotes = extractNotes(studentSequence);
         List<Integer> originalNotes = extractNotes(originalSequence);
+        List<Integer> wrongNotes = new ArrayList<>();
 
         // Compare notes
         int correctNotes = 0;
@@ -193,13 +193,14 @@ public class RecordingServiceImpl implements IRecordingService {
                 extraNotes++;
             }
         }
-
+        wrongNotes = identifyWrongNotes(studentNotes,originalNotes);
         missedNotes = originalNotes.size() - correctNotes;
 
         // Print comparison results
         System.out.println("Correct Notes: " + correctNotes);
         System.out.println("Missed Notes: " + missedNotes);
         System.out.println("Extra Notes: " + extraNotes);
+        System.out.println("Wrong notes: " + wrongNotes);
     }
     private List<Integer> extractNotes(Sequence sequence) {
         List<Integer> notes = new ArrayList<>();
@@ -219,7 +220,16 @@ public class RecordingServiceImpl implements IRecordingService {
 
         return notes;
     }
+    private List<Integer> identifyWrongNotes(List<Integer> studentNotes, List<Integer> originalNotes){
+        List<Integer> wrongNotes = new ArrayList<>();
+        for (int i = 0; i < studentNotes.size(); i++) {
+            if (!studentNotes.get(i).equals(originalNotes.get(i))) {
+                wrongNotes.add(studentNotes.get(i)); // Add wrong note to the list
 
+            }
+        }
+        return wrongNotes;
+    }
 
     @Override
     public List<Recording> getRecordingsByUserId(Long userId) {
