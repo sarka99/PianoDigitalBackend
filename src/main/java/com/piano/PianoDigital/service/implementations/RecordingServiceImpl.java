@@ -206,6 +206,16 @@ public class RecordingServiceImpl implements IRecordingService {
         System.out.println("Extra Notes: " + extraNotes);
         System.out.println("Wrong notes: " + wrongNotes);
         System.out.println("Note Accuracy: " + correctNotesPercentage+"%");
+
+        //Calculate BPM of the student and teacher track
+      //  float studentRecordingBPM = calculateBPM(studentSequence);
+     //   float teacherRecordingBPM = calculateBPM(originalSequence);
+
+      //  System.out.println("Student Recording BPM: " + studentRecordingBPM);
+     //   System.out.println("Teacher Recording BPM: " + teacherRecordingBPM);
+
+        //Compare dynamics between student and teacher recording
+        compareDynamics(studentRecording,originalRecording);
     }
     private List<Integer> extractNotes(Sequence sequence) {
         List<Integer> notes = new ArrayList<>();
@@ -225,6 +235,7 @@ public class RecordingServiceImpl implements IRecordingService {
 
         return notes;
     }
+    //this can be a util method
     private List<String> identifyWrongNotes(List<Integer> studentNotes, List<Integer> originalNotes){
         List<String> wrongNotes = new ArrayList<>();
         for (int i = 0; i < studentNotes.size(); i++) {
@@ -234,6 +245,78 @@ public class RecordingServiceImpl implements IRecordingService {
             }
         }
         return wrongNotes;
+    }
+    private void compareDynamics(Recording studentRecording, Recording originalRecording) throws InvalidMidiDataException, IOException {
+        //inside this method later call the Result repository and save the student velocity and teacher velocity
+        Sequence studentSequence = MidiSystem.getSequence(new ByteArrayInputStream(studentRecording.getMidiFileData()));
+        Sequence originalSequence = MidiSystem.getSequence(new ByteArrayInputStream(originalRecording.getMidiFileData()));
+
+        int studentVelocitySum = calculateAverageVelocity(studentSequence);
+        int originalVelocitySum = calculateAverageVelocity(originalSequence);
+        System.out.println("Velocity of student recording:" + studentVelocitySum);
+        System.out.println("Velocity of teacher recording:" + originalVelocitySum);
+
+        // Compare average velocities
+        if (studentVelocitySum > originalVelocitySum) {
+            System.out.println("You played too forte. Try playing softer.");
+        } else if (studentVelocitySum < originalVelocitySum) {
+            System.out.println("You played too soft. Try playing harder.");
+        } else {
+            System.out.println("Your dynamics are on point. Keep it up!");
+        }
+    }
+    private int calculateAverageVelocity(Sequence sequence) {
+        int totalVelocity = 0;
+        int totalNotes = 0;
+
+        for (Track track : sequence.getTracks()) {
+            for (int i = 0; i < track.size(); i++) {
+                MidiEvent event = track.get(i);
+                MidiMessage message = event.getMessage();
+                if (message instanceof ShortMessage) {
+                    ShortMessage sm = (ShortMessage) message;
+                    if (sm.getCommand() == ShortMessage.NOTE_ON) {
+                        int velocity = sm.getData2();
+                        totalVelocity += velocity;
+                        totalNotes++;
+                    }
+                }
+            }
+        }
+
+        return totalVelocity / totalNotes;
+    }
+    //Got stuck on calculating the BPM; wont get into the if statement with type  0x47
+    private float calculateBPM(Sequence sequence) throws InvalidMidiDataException {
+        float ticksPerBeat = sequence.getResolution();
+        float microsPerQuarterNote = 0;
+
+        // Iterate over the tracks to find the tempo
+        Track[] tracks = sequence.getTracks();
+        for (Track track : tracks) {
+            for (int i = 0; i < track.size(); i++) {
+                MidiEvent event = track.get(i);
+                MidiMessage message = event.getMessage();
+                if (message instanceof MetaMessage) {
+                    MetaMessage metaMessage = (MetaMessage) message;
+                    System.out.println("meta messag type" + metaMessage.getType());
+                    System.out.println("meta messag data" + metaMessage.getData());
+                    if (metaMessage.getType() == 0x47) { // Tempo meta message
+                        byte[] data = metaMessage.getData();
+                        int tempo = ((data[0] & 0xFF) << 16 | (data[1] & 0xFF) << 8 | (data[2] & 0xFF));
+                        System.out.println("Tempo:" + tempo);
+                        microsPerQuarterNote = 60000000.0f / tempo;
+                        break;
+                    }
+                }
+            }
+            if (microsPerQuarterNote > 0) {
+                break;
+            }
+        }
+
+        float ticksPerSecond = microsPerQuarterNote / 1000000.0f * ticksPerBeat;
+        return sequence.getTickLength() / ticksPerSecond;
     }
 
     @Override
