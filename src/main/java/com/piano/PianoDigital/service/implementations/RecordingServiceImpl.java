@@ -198,8 +198,8 @@ public class RecordingServiceImpl implements IRecordingService {
         correctNotesPercentage = (int) ((double) correctNotes / originalNotes.size() * 100);
         wrongNotes = identifyWrongNotes(studentNotes,originalNotes);
         missedNotes = originalNotes.size() - correctNotes;
-        float studentBPM = calculateBPM(studentSequence);
-        float teacherBPM = calculateBPM(originalSequence);
+        float studentBPM = calculateBPM(studentRecording);
+        float teacherBPM = calculateBPM(originalRecording);
 
         // Print comparison results
         System.out.println("Correct Notes: " + correctNotes);
@@ -285,12 +285,12 @@ public class RecordingServiceImpl implements IRecordingService {
         return totalVelocity / totalNotes;
     }
     //Got stuck on calculating the BPM; wont get into the if statement with type  0x47
-    private float calculateBPM(Sequence sequence) {
-        float ticksPerBeat = sequence.getResolution();
-
+    private float calculateBPM(Recording recording) throws InvalidMidiDataException, IOException {
+        Sequence recordingSequence = MidiSystem.getSequence(new ByteArrayInputStream(recording.getMidiFileData()));
+        float ticksPerBeat = recordingSequence.getResolution();
         // Extract note start times
         List<Float> noteStartTimes = new ArrayList<>();
-        for (Track track : sequence.getTracks()) {
+        for (Track track : recordingSequence.getTracks()) {
             for (int i = 0; i < track.size(); i++) {
                 MidiEvent event = track.get(i);
                 MidiMessage message = event.getMessage();
