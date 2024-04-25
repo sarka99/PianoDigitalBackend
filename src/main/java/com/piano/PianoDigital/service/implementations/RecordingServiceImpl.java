@@ -198,7 +198,8 @@ public class RecordingServiceImpl implements IRecordingService {
         correctNotesPercentage = (int) ((double) correctNotes / originalNotes.size() * 100);
         wrongNotes = identifyWrongNotes(studentNotes,originalNotes);
         missedNotes = originalNotes.size() - correctNotes;
-
+        float studentBPM = calculateBPM(studentSequence);
+        float teacherBPM = calculateBPM(originalSequence);
 
         // Print comparison results
         System.out.println("Correct Notes: " + correctNotes);
@@ -207,12 +208,9 @@ public class RecordingServiceImpl implements IRecordingService {
         System.out.println("Wrong notes: " + wrongNotes);
         System.out.println("Note Accuracy: " + correctNotesPercentage+"%");
 
-        //Calculate BPM of the student and teacher track
-      //  float studentRecordingBPM = calculateBPM(studentSequence);
-     //   float teacherRecordingBPM = calculateBPM(originalSequence);
+        System.out.println("BPM for student track: " + studentBPM);
+        System.out.println("BPM for teacher track: " + teacherBPM);
 
-      //  System.out.println("Student Recording BPM: " + studentRecordingBPM);
-     //   System.out.println("Teacher Recording BPM: " + teacherRecordingBPM);
 
         //Compare dynamics between student and teacher recording
         compareDynamics(studentRecording,originalRecording);
@@ -287,36 +285,42 @@ public class RecordingServiceImpl implements IRecordingService {
         return totalVelocity / totalNotes;
     }
     //Got stuck on calculating the BPM; wont get into the if statement with type  0x47
-    private float calculateBPM(Sequence sequence) throws InvalidMidiDataException {
+    private float calculateBPM(Sequence sequence) {
         float ticksPerBeat = sequence.getResolution();
-        float microsPerQuarterNote = 0;
 
-        // Iterate over the tracks to find the tempo
-        Track[] tracks = sequence.getTracks();
-        for (Track track : tracks) {
+        // Extract note start times
+        List<Float> noteStartTimes = new ArrayList<>();
+        for (Track track : sequence.getTracks()) {
             for (int i = 0; i < track.size(); i++) {
                 MidiEvent event = track.get(i);
                 MidiMessage message = event.getMessage();
-                if (message instanceof MetaMessage) {
-                    MetaMessage metaMessage = (MetaMessage) message;
-                    System.out.println("meta messag type" + metaMessage.getType());
-                    System.out.println("meta messag data" + metaMessage.getData());
-                    if (metaMessage.getType() == 0x47) { // Tempo meta message
-                        byte[] data = metaMessage.getData();
-                        int tempo = ((data[0] & 0xFF) << 16 | (data[1] & 0xFF) << 8 | (data[2] & 0xFF));
-                        System.out.println("Tempo:" + tempo);
-                        microsPerQuarterNote = 60000000.0f / tempo;
-                        break;
+                if (message instanceof ShortMessage) {
+                    ShortMessage sm = (ShortMessage) message;
+                    if (sm.getCommand() == ShortMessage.NOTE_ON) {
+                        long tick = event.getTick();
+                        float timeInSeconds = tick / ticksPerBeat; // Convert tick to time in seconds
+                        noteStartTimes.add(timeInSeconds);
                     }
                 }
             }
-            if (microsPerQuarterNote > 0) {
-                break;
-            }
         }
 
-        float ticksPerSecond = microsPerQuarterNote / 1000000.0f * ticksPerBeat;
-        return sequence.getTickLength() / ticksPerSecond;
+        // Calculate time differences between consecutive note events
+        List<Float> timeDiffs = new ArrayList<>();
+        for (int i = 0; i < noteStartTimes.size() - 1; i++) {
+            float diff = noteStartTimes.get(i + 1) - noteStartTimes.get(i);
+            timeDiffs.add(diff);
+        }
+
+        // Calculate average time difference
+        double sum = 0;
+        for (float diff : timeDiffs) {
+            sum += diff;
+        }
+        double averageTimeDiff = sum / timeDiffs.size();
+
+        // Convert time difference to tempo (beats per minute)
+        return (float) (60.0 / averageTimeDiff);
     }
 
     @Override
