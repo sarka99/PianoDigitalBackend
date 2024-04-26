@@ -7,10 +7,20 @@ import com.piano.PianoDigital.db.entity.User;
 import com.piano.PianoDigital.db.repository.RecordingRepository;
 import com.piano.PianoDigital.db.repository.UserRepository;
 import com.piano.PianoDigital.service.interfaces.IRecordingService;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.ByteArrayInputStream;
@@ -19,11 +29,15 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.sound.midi.*;
 
 @Service
 public class RecordingServiceImpl implements IRecordingService {
 
+    public static final String bpmURL = "http://localhost:5000/calculate_bpm";
+    @Autowired
+    private RestTemplate restTemplate;
     @Autowired
     private RecordingRepository recordingRepository;
     @Autowired
@@ -198,8 +212,7 @@ public class RecordingServiceImpl implements IRecordingService {
         correctNotesPercentage = (int) ((double) correctNotes / originalNotes.size() * 100);
         wrongNotes = identifyWrongNotes(studentNotes,originalNotes);
         missedNotes = originalNotes.size() - correctNotes;
-        float studentBPM = calculateBPM(studentRecording);
-        float teacherBPM = calculateBPM(originalRecording);
+
 
         // Print comparison results
         System.out.println("Correct Notes: " + correctNotes);
@@ -207,10 +220,8 @@ public class RecordingServiceImpl implements IRecordingService {
         System.out.println("Extra Notes: " + extraNotes);
         System.out.println("Wrong notes: " + wrongNotes);
         System.out.println("Note Accuracy: " + correctNotesPercentage+"%");
-
-        System.out.println("BPM for student track: " + studentBPM);
-        System.out.println("BPM for teacher track: " + teacherBPM);
-
+        System.out.println("The students bpm is" + getBpmFromFlask(studentRecording));
+        System.out.println("The original recording bpm is" + getBpmFromFlask(originalRecording));
 
         //Compare dynamics between student and teacher recording
         compareDynamics(studentRecording,originalRecording);
@@ -285,42 +296,55 @@ public class RecordingServiceImpl implements IRecordingService {
         return totalVelocity / totalNotes;
     }
     //Got stuck on calculating the BPM; wont get into the if statement with type  0x47
-    private float calculateBPM(Recording recording) throws InvalidMidiDataException, IOException {
-        Sequence recordingSequence = MidiSystem.getSequence(new ByteArrayInputStream(recording.getMidiFileData()));
-        float ticksPerBeat = recordingSequence.getResolution();
-        // Extract note start times
-        List<Float> noteStartTimes = new ArrayList<>();
-        for (Track track : recordingSequence.getTracks()) {
-            for (int i = 0; i < track.size(); i++) {
-                MidiEvent event = track.get(i);
-                MidiMessage message = event.getMessage();
-                if (message instanceof ShortMessage) {
-                    ShortMessage sm = (ShortMessage) message;
-                    if (sm.getCommand() == ShortMessage.NOTE_ON) {
-                        long tick = event.getTick();
-                        float timeInSeconds = tick / ticksPerBeat; // Convert tick to time in seconds
-                        noteStartTimes.add(timeInSeconds);
-                    }
+
+    public double getBpmFromFlask(Recording recording) {
+        try {
+            // Create the request body
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("midi_file", new ByteArrayResource(recording.getMidiFileData()) {
+                @Override
+                public String getFilename() {
+                    return recording.getFileName();
                 }
+            });
+
+            // Set headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            // Create the request entity
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+
+            // Make the HTTP POST request to the Flask microservice
+            ResponseEntity<Map<String, Double>> responseEntity = null;
+            try {
+                responseEntity = restTemplate.exchange(
+                        bpmURL,
+                        HttpMethod.POST,
+                        requestEntity,
+                        new ParameterizedTypeReference<Map<String, Double>>() {
+                        });
+
+            } catch (Exception e) {
+                System.out.println("Error making HTTP request: " + e.getMessage());
             }
-        }
 
-        // Calculate time differences between consecutive note events
-        List<Float> timeDiffs = new ArrayList<>();
-        for (int i = 0; i < noteStartTimes.size() - 1; i++) {
-            float diff = noteStartTimes.get(i + 1) - noteStartTimes.get(i);
-            timeDiffs.add(diff);
+            // Check if request was successful and contains the BPM value
+            if (responseEntity.getStatusCode() == HttpStatus.OK) {
+                Map<String, Double> responseBody = responseEntity.getBody();
+                if (responseBody != null && responseBody.containsKey("bpm")) {
+                    return responseBody.get("bpm");
+                } else {
+                    throw new Exception("Invalid response from Flask microservice: missing BPM value");
+                }
+            } else {
+                throw new Exception("Failed to call Flask microservice: " + responseEntity.getStatusCode());
+            }
+        } catch (Exception e) {
+            // Handle exceptions
+            throw new RuntimeException("Error calling Flask microservice", e);
         }
-
-        // Calculate average time difference
-        double sum = 0;
-        for (float diff : timeDiffs) {
-            sum += diff;
-        }
-        double averageTimeDiff = sum / timeDiffs.size();
-
-        // Convert time difference to tempo (beats per minute)
-        return (float) (60.0 / averageTimeDiff);
     }
 
     @Override
