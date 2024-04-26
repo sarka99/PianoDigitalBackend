@@ -7,9 +7,7 @@ import com.piano.PianoDigital.db.entity.User;
 import com.piano.PianoDigital.db.repository.RecordingRepository;
 import com.piano.PianoDigital.db.repository.UserRepository;
 import com.piano.PianoDigital.service.interfaces.IRecordingService;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
@@ -17,10 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.ByteArrayInputStream;
@@ -35,7 +31,7 @@ import javax.sound.midi.*;
 @Service
 public class RecordingServiceImpl implements IRecordingService {
 
-    public static final String bpmURL = "http://localhost:5000/calculate_bpm";
+    public static final String bpmFlaskURL = "http://localhost:5000/calculate_bpm";
     @Autowired
     private RestTemplate restTemplate;
     @Autowired
@@ -320,7 +316,7 @@ public class RecordingServiceImpl implements IRecordingService {
             ResponseEntity<Map<String, Double>> responseEntity = null;
             try {
                 responseEntity = restTemplate.exchange(
-                        bpmURL,
+                        bpmFlaskURL,
                         HttpMethod.POST,
                         requestEntity,
                         new ParameterizedTypeReference<Map<String, Double>>() {
