@@ -164,6 +164,7 @@ public class RecordingServiceImpl implements IRecordingService {
                     file.getContentType());
             studentsRecording.setOriginalRecordingId(original_track_id);
             //Save the recording to db as a recording row
+            // recordingRepository.save(studentsRecording);
 
             //Do feedback, get the saved studentsRecording --> compare to the original
             //FindRecordingByRecordedBYID now we have the students track, from it extract the original track and then compare them.

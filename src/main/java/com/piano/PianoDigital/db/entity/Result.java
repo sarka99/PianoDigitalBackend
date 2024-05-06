@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 
 @Entity
 @Table(name = "results")
@@ -20,17 +22,34 @@ public class Result {
     @JoinColumn(name = "student_recording_id", nullable = false)
     private Recording studentRecording;
 
-    @Column(name = "tempo", nullable = false)
-    private Integer tempo;
+    @Column(name = "wrong_notes_played")
+    @ElementCollection
+    private List<String> wrongNotesPlayed;
 
-    @Column(name = "wrong_notes_played", columnDefinition = "json")
-    private String wrongNotesPlayed;
+    @Column(name = "note_accuracy_percentage")
+    private Double noteAccuracyPercentage;
 
-    @Column(name = "correct_percentage", columnDefinition = "json")
-    private Float correctPercentage;
+    @Column(name = "number_correct_notes")
+    private Integer numberOfCorrectNotes;
 
-    @Column(name = "dynamic", columnDefinition = "json")
-    private Float dynamic;
+    @Column(name = "number_missed_notes")
+    private Integer numberOfMissedNotes;
+
+    @Column(name = "number_extra_notes")
+    private Integer numberOfExtraNotes;
+
+    @Column(name = "teacher_tempo", nullable = false)
+    private Double teacherTempoBPM;
+
+    @Column(name = "student_tempo", nullable = false)
+    private Double studentTempoBPM;
+
+
+    @Column(name = "teacher_dynamic")
+    private Integer teacherDynamic;
+
+    @Column(name = "student_dynamic")
+    private Integer studentDynamic;
     // Constructors, getters, and setters
 
 }
