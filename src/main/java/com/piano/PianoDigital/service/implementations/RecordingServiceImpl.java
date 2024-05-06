@@ -3,8 +3,10 @@ package com.piano.PianoDigital.service.implementations;
 import com.piano.PianoDigital.Utils.MidiDeviceSelector;
 import com.piano.PianoDigital.Utils.MidiNoteConverter;
 import com.piano.PianoDigital.db.entity.Recording;
+import com.piano.PianoDigital.db.entity.Result;
 import com.piano.PianoDigital.db.entity.User;
 import com.piano.PianoDigital.db.repository.RecordingRepository;
+import com.piano.PianoDigital.db.repository.ResultRepository;
 import com.piano.PianoDigital.db.repository.UserRepository;
 import com.piano.PianoDigital.service.interfaces.IRecordingService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,10 +39,11 @@ public class RecordingServiceImpl implements IRecordingService {
     @Autowired
     private RecordingRepository recordingRepository;
     @Autowired
+    private ResultRepository resultRepository;
+    @Autowired
     private UserRepository userRepository;
-
     private Sequencer sequencer;
-
+    private Result studentRecordingResult;
     @Override
     public void stopRecording() throws Exception {
         try {
@@ -164,7 +167,7 @@ public class RecordingServiceImpl implements IRecordingService {
                     file.getContentType());
             studentsRecording.setOriginalRecordingId(original_track_id);
             //Save the recording to db as a recording row
-            // recordingRepository.save(studentsRecording);
+             recordingRepository.save(studentsRecording);
 
             //Do feedback, get the saved studentsRecording --> compare to the original
             //FindRecordingByRecordedBYID now we have the students track, from it extract the original track and then compare them.
@@ -174,13 +177,15 @@ public class RecordingServiceImpl implements IRecordingService {
             System.out.println("The students recording to be compared:" + studentsRecording);
             System.out.println("The original recording to be compared:" + originalRecording);
             compareTracksNotes(studentsRecording,originalRecording);
+            System.out.println(studentRecordingResult);
+            resultRepository.save(studentRecordingResult);
 
             return null;
 
 
 
         }catch (Exception e){
-            throw new Exception("Could not save file:" + fileName);
+            throw new Exception("Could not save file:" + e);
         }
     }
     private void compareTracksNotes(Recording studentRecording,Recording originalRecording) throws InvalidMidiDataException, IOException {
@@ -219,7 +224,13 @@ public class RecordingServiceImpl implements IRecordingService {
         System.out.println("Note Accuracy: " + correctNotesPercentage+"%");
         System.out.println("The students bpm is" + getBpmFromFlask(studentRecording));
         System.out.println("The original recording bpm is" + getBpmFromFlask(originalRecording));
+        double studentRecordingBPM = getBpmFromFlask(studentRecording);
+        double teacherRecordingBPM = getBpmFromFlask(originalRecording);
+        int studentDynamic = calculateAverageVelocity(studentSequence);
+        int teacherDynamic = calculateAverageVelocity(originalSequence);
 
+        studentRecordingResult = new Result(studentRecording,wrongNotes, (double) correctNotesPercentage,correctNotes,missedNotes,extraNotes,teacherRecordingBPM,studentRecordingBPM,
+                studentDynamic,teacherDynamic);
         //Compare dynamics between student and teacher recording
         compareDynamics(studentRecording,originalRecording);
     }

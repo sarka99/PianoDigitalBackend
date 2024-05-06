@@ -66,13 +66,9 @@ public class RecordingController {
                                                    @RequestParam("originalRecordingId") Long original_recording_id) throws Exception {
 
         Recording recording = null;
-        String downloadMidiURL = "";
         recording = recordingService.saveStudentRecording(file,title,description,recordedById,assignedById, original_recording_id);
 
-        downloadMidiURL = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/download/")
-                .path(String.valueOf((Long)recording.getId()))
-                .toUriString();
+
         System.out.println(recording);
         return ResponseEntity.status(HttpStatus.CREATED).body(recording);
 
