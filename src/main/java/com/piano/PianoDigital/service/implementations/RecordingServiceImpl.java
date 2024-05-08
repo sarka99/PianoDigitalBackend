@@ -222,12 +222,56 @@ public class RecordingServiceImpl implements IRecordingService {
         System.out.println("Extra Notes: " + extraNotes);
         System.out.println("Wrong notes: " + wrongNotes);
         System.out.println("Note Accuracy: " + correctNotesPercentage+"%");
-        System.out.println("The students bpm is" + getBpmFromFlask(studentRecording));
-        System.out.println("The original recording bpm is" + getBpmFromFlask(originalRecording));
+
         double studentRecordingBPM = getBpmFromFlask(studentRecording);
         double teacherRecordingBPM = getBpmFromFlask(originalRecording);
         int studentDynamic = calculateAverageVelocity(studentSequence);
         int teacherDynamic = calculateAverageVelocity(originalSequence);
+        //print out feedback based on notes
+        if (correctNotesPercentage >=80 && correctNotesPercentage <= 100){
+            System.out.println("You have a high note accuracy of:" + correctNotesPercentage + " %");
+        } else if (correctNotesPercentage >= 50 && correctNotesPercentage <= 70) {
+            System.out.println("You have an intermediate note accuracy of:" + correctNotesPercentage);
+
+        }else {
+            System.out.println("You have a low note accuracy of:" + correctNotesPercentage);
+        }
+
+        // print out feedback based on tempo
+        if (studentRecordingBPM < teacherRecordingBPM - 5){
+            System.out.println("You played too slow");
+        } else if (studentRecordingBPM > teacherRecordingBPM + 5) {
+            System.out.println("You played too fast");
+
+        }else {
+            System.out.println("Your tempo is good");
+        }
+        //print out feedback based on dynamic
+        if (studentDynamic >= 0 && studentDynamic < 20) {
+            System.out.println("You Played Pianississimo");
+        } else if (studentDynamic >= 20 && studentDynamic < 40) {
+            System.out.println("You Played Pianissimo");
+        } else if (studentDynamic >= 40 && studentDynamic < 60) {
+            System.out.println("You Played Piano");
+        } else if (studentDynamic >= 60 && studentDynamic < 80) {
+            System.out.println("You Played Mezzo Piano");
+        } else if (studentDynamic >= 80 && studentDynamic < 100) {
+            System.out.println("You Played Mezzo Forte");
+        } else if (studentDynamic >= 100 && studentDynamic < 120) {
+            System.out.println("You Played Forte");
+        } else if (studentDynamic >= 120 && studentDynamic <= 127) {
+            System.out.println("You Played Fortissimo");
+        }
+
+        if (studentDynamic < teacherDynamic - 10){
+            System.out.println("You played too soft, try playing harder");
+        } else if (studentDynamic > teacherDynamic + 10) {
+            System.out.println("You played too hard, try playing softer");
+
+        }else {
+            System.out.println("You played just hard enough");
+        }
+
 
         studentRecordingResult = new Result(studentRecording,wrongNotes, (double) correctNotesPercentage,correctNotes,missedNotes,extraNotes,teacherRecordingBPM,studentRecordingBPM,
                 studentDynamic,teacherDynamic);
